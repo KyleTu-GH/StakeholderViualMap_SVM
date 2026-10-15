@@ -102,7 +102,7 @@
               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-slate-500" 
               placeholder="職銜" 
             />
-            <div id="form-error-msg" class="text-red-500 text-[11px] font-bold hidden"></div>
+            <div id="form-error-msg" role="alert" class="text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 text-[11px] font-bold hidden"></div>
             <button 
               type="submit" 
               id="add-btn" 
@@ -115,8 +115,8 @@
         </div>
 
         <!-- 2. 待分配圖像區 -->
-        <div class="bg-white/70 p-3 rounded-2xl border-2 border-dashed border-slate-300 min-h-[100px]">
-          <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-2">2. 待分配圖像 (拖曳至右側圖中)</h3>
+        <div id="pool-zone" class="bg-white/70 p-3 rounded-2xl border-2 border-dashed border-slate-300 min-h-[100px]">
+          <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-2">2. 待分配圖像 (拖曳至地圖；或點選人像)</h3>
           <div id="unplaced-container" class="flex flex-wrap gap-2.5 justify-center">
             <!-- 待分配頭像將由 JS 動態生成 -->
           </div>
@@ -128,8 +128,8 @@
         <!-- 視覺地圖主畫布 -->
         <div 
           id="map-container" 
-          ondragover="handleMapDragOver(event)" 
-          ondrop="handleMapDrop(event)"
+          
+         
           class="relative bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden aspect-[4/3] min-h-[460px] w-full flex items-center justify-center select-none"
         >
           <!-- 四個角落策略提示（預設隱藏，字級 text-sm） -->
@@ -140,11 +140,13 @@
             <span class="absolute bottom-3.5 right-4 text-slate-600 text-sm font-bold opacity-60 tracking-wide text-right">右下：穩定預期・資訊同步</span>
           </div>
 
-          <!-- 三層暖橘色同心圓（100% 周邊、75% 中度、25% 核心） -->
+          <!-- 三層暖橘色同心圓（100% 周邊、75% 中度、25% 核心）：直徑以畫布較短邊為準，由 JS 設定 #rings-wrap 尺寸，圓環與距離判定共用同一組半徑 -->
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div class="absolute w-[100%] aspect-square rounded-full bg-orange-100/35 border border-orange-200/30"></div>
-            <div class="absolute w-[75%] aspect-square rounded-full bg-orange-200/40 border border-orange-300/40"></div>
-            <div class="absolute w-[25%] aspect-square rounded-full bg-orange-300/50 border border-orange-400/50"></div>
+            <div id="rings-wrap" class="relative" style="width:100%;height:100%;">
+              <div class="absolute rounded-full bg-orange-100/35 border border-orange-200/30" style="left:0;top:0;width:100%;height:100%;"></div>
+              <div class="absolute rounded-full bg-orange-200/40 border border-orange-300/40" style="left:12.5%;top:12.5%;width:75%;height:75%;"></div>
+              <div class="absolute rounded-full bg-orange-300/50 border border-orange-400/50" style="left:37.5%;top:37.5%;width:25%;height:25%;"></div>
+            </div>
           </div>
 
           <!-- 座標十字軸線 -->
@@ -205,6 +207,28 @@
     </div>
   </div>
 
+  <!-- 點選人像的操作選單 -->
+  <div id="action-modal" class="fixed inset-0 z-[450] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden" onclick="if(event.target===this) closeActionModal()" role="dialog" aria-modal="true" aria-labelledby="action-title">
+    <div class="bg-white rounded-3xl shadow-2xl w-full p-5 max-w-xs">
+      <div class="flex justify-between items-start mb-3">
+        <div class="min-w-0">
+          <h3 id="action-title" class="text-base font-bold text-slate-800 break-words"></h3>
+          <p id="action-subtitle" class="text-xs text-slate-400 mt-0.5 break-words"></p>
+        </div>
+        <button type="button" onclick="closeActionModal()" class="text-slate-400 font-bold text-xl hover:text-slate-600 leading-none px-1" aria-label="關閉">×</button>
+      </div>
+      <div class="space-y-3">
+        <button type="button" onclick="actionEdit()" class="w-full py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-200">編輯姓名／職銜</button>
+        <div>
+          <div id="action-place-label" class="text-[11px] font-bold text-slate-400 mb-1.5"></div>
+          <div id="action-place-grid" class="grid grid-cols-2 gap-2"></div>
+        </div>
+        <button type="button" id="action-unplace" onclick="actionUnplace()" class="w-full py-2.5 bg-white text-slate-600 border border-slate-200 rounded-xl font-bold text-xs hover:bg-slate-50">移回待分配區</button>
+        <button type="button" id="action-delete" onclick="actionDelete()" class="w-full py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-100">刪除</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 雙擊編輯彈窗 -->
   <div id="edit-modal" class="fixed inset-0 z-[400] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
     <div class="bg-white rounded-3xl shadow-2xl w-full p-6 max-w-sm">
@@ -243,7 +267,7 @@
 
   <script>
     // 程式最後發布/建置版本時間（格式：yymmdd-HHmm）
-    const APP_BUILD_TIMESTAMP = '261012-1850';
+    const APP_BUILD_TIMESTAMP = '261013-1600';
 
     // 6 組飽和清晰主題配色
     const STAKEHOLDER_THEMES = [
@@ -473,6 +497,27 @@
       `;
     }
 
+    // 工具：HTML 跳脫（人物姓名／職銜會插入 innerHTML）
+    function esc(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ===== 地圖幾何：圓環與距離判定共用同一組半徑（以較短邊為直徑）=====
+    function getMapMetrics() {
+      const rect = document.getElementById('map-container').getBoundingClientRect();
+      return { rect, W: rect.width, H: rect.height, R: Math.min(rect.width, rect.height) / 2 };
+    }
+
+    function updateRings() {
+      const { W, H } = getMapMetrics();
+      const d = Math.min(W, H);
+      const wrap = document.getElementById('rings-wrap');
+      if (wrap && d > 0) {
+        wrap.style.width = d + 'px';
+        wrap.style.height = d + 'px';
+      }
+    }
+
     // 象限與距離計算邏輯
     function getQuadrantKey(x, y) {
       if (x === null || y === null) return null;
@@ -486,8 +531,12 @@
       if (x === null || y === null) return null;
       const qKey = getQuadrantKey(x, y);
       const qStrategy = qKey ? stakeholderDialogueLibrary[qKey] : null;
-      const rawDistance = Math.sqrt(Math.pow(x - 50, 2) + Math.pow(y - 50, 2));
-      const normalizedDistance = Math.min(100, Math.round((rawDistance / 50) * 100));
+
+      // x、y 為相對於畫布寬／高的百分比，先換算成像素再與圓環半徑比較
+      const { W, H, R } = getMapMetrics();
+      const dx = ((x - 50) / 100) * W;
+      const dy = ((y - 50) / 100) * H;
+      const normalizedDistance = R > 0 ? Math.min(100, Math.round((Math.hypot(dx, dy) / R) * 100)) : 100;
 
       let tierName = '', tierColor = '', isCore = false;
       if (normalizedDistance <= 25) {
@@ -514,23 +563,27 @@
       );
     }
 
-    function getStrategyData(qKey, isCore, indexInQuadrant = 0, themeColor = '#2563EB') {
+    // 對策選擇：以「人物自己的 themeIndex」固定輪替，不再受同象限其他人進出影響；
+    // 使用者可在對策表中手動切換情境（s.scenarioPick），切換後會被記住（僅在同一象限有效）。
+    function getStrategyData(s, pos, themeColor = '#2563EB') {
+      const qKey = pos?.quadrantKey;
       if (!qKey || !stakeholderDialogueLibrary[qKey]) return null;
       const bank = stakeholderDialogueLibrary[qKey];
-      
-      // 1. 互動情境篩選：優先符合 core / standard，若有多人則依照 indexInQuadrant 輪替
-      const targetTier = isCore ? "core" : "standard";
-      const matchedOptions = bank.interactionOptions.filter(item => item.tier === targetTier);
-      const otherOptions = bank.interactionOptions.filter(item => item.tier !== targetTier);
-      // 結合所有選項（優先目標層級），確保至少 4 個不同選項供輪替
-      const combinedOptions = [...matchedOptions, ...otherOptions];
-      const chosenOption = combinedOptions[indexInQuadrant % combinedOptions.length] || bank.interactionOptions[0];
+      const seed = Number.isInteger(s.themeIndex) ? s.themeIndex : 0;
 
-      // 2. 核心態度與方針依據同象限人數輪替，保證同象限多角色內容皆不重複
-      const attitudeCount = bank.coreAttitudes.length;
-      const focusCount = bank.strategyFocus.length;
-      const chosenAttitude = bank.coreAttitudes[indexInQuadrant % attitudeCount];
-      const chosenFocus = bank.strategyFocus[(indexInQuadrant + 1) % focusCount];
+      // 1. 互動情境：優先使用手動選擇；否則在符合層級（core / standard）的情境中依 seed 固定挑選
+      const targetTier = pos.isCore ? 'core' : 'standard';
+      const matched = bank.interactionOptions.filter(item => item.tier === targetTier);
+      const pool = matched.length ? matched : bank.interactionOptions;
+      let chosenOption = null;
+      if (s.scenarioPick && s.scenarioPick.qKey === qKey) {
+        chosenOption = bank.interactionOptions.find(o => o.scenario === s.scenarioPick.scenario) || null;
+      }
+      if (!chosenOption) chosenOption = pool[seed % pool.length];
+
+      // 2. 核心態度與方針：同樣依 seed 固定
+      const chosenAttitude = bank.coreAttitudes[seed % bank.coreAttitudes.length];
+      const chosenFocus = bank.strategyFocus[(seed + 1) % bank.strategyFocus.length];
 
       return {
         quadrant: bank.quadrant,
@@ -540,15 +593,29 @@
         coreAttitude: chosenAttitude,
         strategyFocus: chosenFocus,
         scenario: chosenOption.scenario,
+        scenarioOptions: bank.interactionOptions.map(o => o.scenario),
         frequency: chosenOption.frequency,
         channels: chosenOption.channels,
         promptFormatted: formatDialoguePrompt(chosenOption.prompt, themeColor)
       };
     }
 
+    function setScenario(id, scenario) {
+      const s = stakeholders.find(item => item.id === id);
+      if (!s) return;
+      const qKey = getQuadrantKey(s.x, s.y);
+      if (!qKey) return;
+      s.scenarioPick = { qKey, scenario };
+      render();
+    }
+
     function handleMeChange() {
       meData.name = document.getElementById('me-name').value.slice(0, 6);
       meData.title = document.getElementById('me-title').value.slice(0, 6);
+      if (meData.name.trim()) {
+        document.getElementById('me-name').classList.remove('ring-2', 'ring-red-400', 'border-red-400');
+        document.getElementById('form-error-msg').classList.add('hidden');
+      }
       updateAddButtonState();
     }
 
@@ -579,9 +646,11 @@
 
       // 若尚未填寫「我的姓名」，自動聚焦並提示
       if (!meData.name.trim()) {
-        errorEl.textContent = '請先填寫上方的「我的姓名」以確立分析主體';
+        errorEl.textContent = '尚未新增：請先填寫上方的「我的姓名」，再按「新增」（已輸入的內容會保留）';
         errorEl.classList.remove('hidden');
-        meNameInput.focus();
+        meNameInput.classList.add('ring-2', 'ring-red-400', 'border-red-400');
+        meNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        meNameInput.focus({ preventScroll: true });
         return;
       }
 
@@ -632,91 +701,214 @@
       }
     }
 
-    // 拖曳處理：電腦 Drag & Drop
-    function handleUnplacedDragStart(e, id) {
-      e.dataTransfer.setData('text/plain', id);
-      draggedId = id;
+    // ===== 統一拖曳：Pointer Events（滑鼠／觸控／手寫筆共用）=====
+    // 拖曳期間只移動浮動的「影子」，不重建 DOM，因此觸控不會中斷；放開時才一次更新狀態。
+    const DRAG_THRESHOLD = 6;
+    let dragState = null;
+    let autoScrollRaf = null;
+
+    function startPointerDrag(e, id) {
+      if (dragState) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const s = stakeholders.find(item => item.id === id);
+      if (!s) return;
+      e.preventDefault();
+      dragState = { id, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastY: e.clientY, moved: false, ghost: null, srcEl: e.currentTarget };
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerCancel);
     }
 
-    function handleMapDragOver(e) {
-      e.preventDefault();
+    function createDragGhost(s) {
+      const theme = STAKEHOLDER_THEMES[s.themeIndex] || STAKEHOLDER_THEMES[0];
+      const el = document.createElement('div');
+      el.className = 'fixed left-0 top-0 z-[600] pointer-events-none flex flex-col items-center';
+      el.style.willChange = 'transform';
+      el.innerHTML = `
+        <div class="p-0.5 bg-white rounded-full shadow-xl border-2 border-blue-500">${createAvatarSvg(theme.color, 48)}</div>
+        <div class="mt-[-2px] bg-white/95 px-2.5 py-0.5 rounded-full shadow border border-slate-100 text-[11px] font-bold whitespace-nowrap">${esc(s.name)}</div>
+      `;
+      document.body.appendChild(el);
+      return el;
     }
 
-    function handleMapDrop(e) {
-      e.preventDefault();
-      const id = e.dataTransfer.getData('text/plain') || draggedId;
-      if (!id) return;
+    function moveGhost(x, y) {
+      if (dragState?.ghost) dragState.ghost.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    }
+
+    function pointInRect(x, y, r) {
+      return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }
+
+    function updateDropHighlight() {
+      if (!dragState) return;
       const map = document.getElementById('map-container');
-      const rect = map.getBoundingClientRect();
-      const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
-      const y = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
+      const pool = document.getElementById('pool-zone');
+      const s = stakeholders.find(item => item.id === dragState.id);
+      const overMap = pointInRect(dragState.lastX, dragState.lastY, map.getBoundingClientRect());
+      const overPool = !!(s && s.isPlaced) && pointInRect(dragState.lastX, dragState.lastY, pool.getBoundingClientRect());
+      map.classList.toggle('ring-4', overMap);
+      map.classList.toggle('ring-blue-300', overMap);
+      pool.classList.toggle('ring-2', overPool);
+      pool.classList.toggle('ring-blue-400', overPool);
+    }
 
-      const target = stakeholders.find(s => s.id === id);
-      if (target) {
-        target.x = x;
-        target.y = y;
-        target.isPlaced = true;
+    // 拖到畫面上下緣時自動捲動（手機版地圖在待分配區下方，需要靠這個才拖得到）
+    function autoScrollLoop() {
+      if (!dragState || !dragState.moved) { autoScrollRaf = null; return; }
+      const edge = 70, y = dragState.lastY;
+      let dy = 0;
+      if (y < edge) dy = -Math.ceil((edge - y) / 6);
+      else if (y > window.innerHeight - edge) dy = Math.ceil((y - (window.innerHeight - edge)) / 6);
+      if (dy) { window.scrollBy(0, dy); updateDropHighlight(); }
+      autoScrollRaf = requestAnimationFrame(autoScrollLoop);
+    }
+
+    function onPointerMove(e) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      dragState.lastX = e.clientX;
+      dragState.lastY = e.clientY;
+      if (!dragState.moved) {
+        if (Math.hypot(e.clientX - dragState.startX, e.clientY - dragState.startY) < DRAG_THRESHOLD) return;
+        const s = stakeholders.find(item => item.id === dragState.id);
+        if (!s) return cleanupDrag();
+        dragState.moved = true;
+        dragState.ghost = createDragGhost(s);
+        if (dragState.srcEl) dragState.srcEl.style.opacity = '0.35';
+        autoScrollRaf = requestAnimationFrame(autoScrollLoop);
       }
-      draggedId = null;
+      moveGhost(e.clientX, e.clientY);
+      updateDropHighlight();
+      if (e.cancelable) e.preventDefault();
+    }
+
+    function cleanupDrag() {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+      if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = null; }
+      if (dragState?.ghost) dragState.ghost.remove();
+      if (dragState?.srcEl) dragState.srcEl.style.opacity = '';
+      const map = document.getElementById('map-container');
+      const pool = document.getElementById('pool-zone');
+      map.classList.remove('ring-4', 'ring-blue-300');
+      pool.classList.remove('ring-2', 'ring-blue-400');
+      dragState = null;
+    }
+
+    function onPointerCancel(e) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      cleanupDrag();
+    }
+
+    function onPointerUp(e) {
+      if (!dragState || e.pointerId !== dragState.pointerId) return;
+      const { id, moved } = dragState;
+      const x = e.clientX, y = e.clientY;
+      cleanupDrag();
+
+      const s = stakeholders.find(item => item.id === id);
+      if (!s) return;
+
+      // 沒有明顯位移 = 點一下 → 開啟操作選單
+      if (!moved) { openActionModal(id); return; }
+
+      const mapRect = document.getElementById('map-container').getBoundingClientRect();
+      const poolRect = document.getElementById('pool-zone').getBoundingClientRect();
+
+      if (pointInRect(x, y, mapRect)) {
+        s.x = Math.max(5, Math.min(95, ((x - mapRect.left) / mapRect.width) * 100));
+        s.y = Math.max(5, Math.min(95, ((y - mapRect.top) / mapRect.height) * 100));
+        s.isPlaced = true;
+      } else if (s.isPlaced && pointInRect(x, y, poolRect)) {
+        s.x = null; s.y = null; s.isPlaced = false;
+      }
+      // 放在其他地方 → 取消，維持原狀
       render();
     }
 
-    // 手機與電腦通用之即時滑動與觸控監聽
-    function startLiveDrag(e, id) {
-      e.preventDefault();
-      liveDraggingId = id;
+    // ===== 點選人像的操作選單（觸控裝置也能編輯／刪除／移動）=====
+    let actionTargetId = null;
+    let deleteArmed = false;
+    const QUICK_BASE = { Q1: { x: 27, y: 27 }, Q2: { x: 73, y: 27 }, Q3: { x: 27, y: 73 }, Q4: { x: 73, y: 73 } };
+
+    function openActionModal(id) {
+      const s = stakeholders.find(item => item.id === id);
+      if (!s) return;
+      actionTargetId = id;
+      deleteArmed = false;
+      document.getElementById('action-title').textContent = s.name;
+      document.getElementById('action-subtitle').textContent = s.title ? s.title : '（未填職銜）';
+      document.getElementById('action-place-label').textContent = s.isPlaced ? '移動到象限' : '快速放置到象限';
+      document.getElementById('action-unplace').classList.toggle('hidden', !s.isPlaced);
+      const delBtn = document.getElementById('action-delete');
+      delBtn.textContent = '刪除';
+      delBtn.className = 'w-full py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold text-xs hover:bg-red-100';
+      document.getElementById('action-place-grid').innerHTML = ['Q1', 'Q2', 'Q3', 'Q4'].map(q => {
+        const b = stakeholderDialogueLibrary[q];
+        return `<button type="button" onclick="actionQuickPlace('${q}')" class="border rounded-xl py-2 px-1 text-center ${b.tagColor}">
+          <span class="block text-xs font-bold">${b.quadrantName}</span>
+          <span class="block text-[10px] opacity-80">${b.tag}</span>
+        </button>`;
+      }).join('');
+      document.getElementById('action-modal').classList.remove('hidden');
     }
 
-    window.addEventListener('mousemove', (e) => {
-      if (!liveDraggingId) return;
-      const map = document.getElementById('map-container');
-      const rect = map.getBoundingClientRect();
-      const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
-      const y = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
-      const target = stakeholders.find(s => s.id === liveDraggingId);
-      if (target) {
-        target.x = x;
-        target.y = y;
-        renderNodesOnly();
-      }
-    });
-
-    window.addEventListener('mouseup', () => {
-      if (liveDraggingId) {
-        liveDraggingId = null;
-        render();
-      }
-    });
-
-    // 手機觸控拖曳
-    let touchDraggingId = null;
-
-    function handleTouchStart(e, id) {
-      touchDraggingId = id;
+    function closeActionModal() {
+      document.getElementById('action-modal').classList.add('hidden');
+      actionTargetId = null;
+      deleteArmed = false;
     }
 
-    window.addEventListener('touchmove', (e) => {
-      if (!touchDraggingId) return;
-      const map = document.getElementById('map-container');
-      const rect = map.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = Math.max(5, Math.min(95, ((touch.clientX - rect.left) / rect.width) * 100));
-      const y = Math.max(5, Math.min(95, ((touch.clientY - rect.top) / rect.height) * 100));
-      const target = stakeholders.find(s => s.id === touchDraggingId);
-      if (target) {
-        target.x = x;
-        target.y = y;
-        target.isPlaced = true;
-        renderNodesOnly();
-      }
-      if (e.cancelable) e.preventDefault();
-    }, { passive: false });
+    function actionEdit() {
+      const id = actionTargetId;
+      closeActionModal();
+      if (id) openEditModal(id);
+    }
 
-    window.addEventListener('touchend', () => {
-      if (touchDraggingId) {
-        touchDraggingId = null;
-        render();
+    function actionUnplace() {
+      const s = stakeholders.find(item => item.id === actionTargetId);
+      if (s) { s.x = null; s.y = null; s.isPlaced = false; }
+      closeActionModal();
+      render();
+    }
+
+    function actionQuickPlace(qKey) {
+      const s = stakeholders.find(item => item.id === actionTargetId);
+      if (!s || !QUICK_BASE[qKey]) return;
+      const n = stakeholders.filter(o => o.isPlaced && o.id !== s.id && getQuadrantKey(o.x, o.y) === qKey).length;
+      const base = QUICK_BASE[qKey];
+      const ox = ((n % 3) - 1) * 9;
+      const oy = Math.floor(n / 3) * 9 * (base.y < 50 ? 1 : -1);
+      s.x = Math.max(5, Math.min(95, base.x + ox));
+      s.y = Math.max(5, Math.min(95, base.y + oy));
+      s.isPlaced = true;
+      closeActionModal();
+      render();
+    }
+
+    function actionDelete() {
+      const btn = document.getElementById('action-delete');
+      if (!deleteArmed) {
+        deleteArmed = true;
+        btn.textContent = '再按一次確認刪除';
+        btn.className = 'w-full py-2.5 bg-red-600 text-white border border-red-600 rounded-xl font-bold text-xs hover:bg-red-700';
+        return;
       }
+      const id = actionTargetId;
+      closeActionModal();
+      if (id) removeStakeholder(id);
+    }
+
+    // Esc 關閉最上層視窗 / 取消拖曳
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (dragState) { cleanupDrag(); return; }
+      const open = id => !document.getElementById(id).classList.contains('hidden');
+      if (open('notice-modal')) closeNoticeModal();
+      else if (open('edit-modal')) closeEditModal();
+      else if (open('action-modal')) closeActionModal();
     });
 
     // 雙擊編輯視窗
@@ -775,41 +967,36 @@
       document.getElementById('notice-modal').classList.add('hidden');
     }
 
+    function nodeKeyHandler(id) {
+      return `if(event.key==='Enter'||event.key===' '){event.preventDefault();openActionModal('${id}')}`;
+    }
+
     function renderNodesOnly() {
       const placedContainer = document.getElementById('placed-nodes-container');
       const placed = stakeholders.filter(s => s.isPlaced);
-      
-      const quadrantCounts = {};
+
       placedContainer.innerHTML = placed.map(s => {
         const theme = STAKEHOLDER_THEMES[s.themeIndex] || STAKEHOLDER_THEMES[0];
         const pos = getPositionInfo(s.x, s.y);
-        const qKey = pos?.quadrantKey;
-        const idx = quadrantCounts[qKey] || 0;
-        quadrantCounts[qKey] = idx + 1;
-        const strategy = getStrategyData(qKey, pos?.isCore, idx);
+        const strategy = getStrategyData(s, pos, theme.color);
+        const label = s.title ? `${s.name}（${s.title}）` : s.name;
 
         return `
-          <div 
-            style="left: ${s.x}%; top: ${s.y}%; transform: translate(-50%, -50%);" 
-            class="absolute flex flex-col items-center cursor-grab active:cursor-grabbing touch-none group"
-            onmousedown="startLiveDrag(event, '${s.id}')"
-            ontouchstart="handleTouchStart(event, '${s.id}')"
-            ondblclick="openEditModal('${s.id}')"
+          <div
+            tabindex="0" role="button"
+            aria-label="${esc(label)}：點一下開啟選單，按住可拖曳移動"
+            style="left: ${s.x}%; top: ${s.y}%; transform: translate(-50%, -50%);"
+            class="absolute flex flex-col items-center cursor-grab active:cursor-grabbing touch-none group outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-2xl"
+            onpointerdown="startPointerDrag(event, '${s.id}')"
+            onkeydown="${nodeKeyHandler(s.id)}"
           >
             <div class="relative p-0.5 bg-white rounded-full shadow-lg border-2 border-transparent group-hover:border-blue-500">
               ${createAvatarSvg(theme.color, 48)}
-              <button 
-                onmousedown="event.stopPropagation()" 
-                onclick="event.stopPropagation(); removeStakeholder('${s.id}')" 
-                class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                ×
-              </button>
             </div>
             <div class="mt-[-2px] text-center pointer-events-none flex flex-col items-center z-[310]">
               <div class="bg-white/95 px-2.5 py-0.5 rounded-full shadow border border-slate-100 text-[11px] font-bold flex items-center gap-1 whitespace-nowrap">
-                <span class="text-slate-900">${s.name}</span>
-                ${s.title ? `<span class="text-slate-400 font-normal text-[10px]">(${s.title})</span>` : ''}
+                <span class="text-slate-900">${esc(s.name)}</span>
+                ${s.title ? `<span class="text-slate-400 font-normal text-[10px]">(${esc(s.title)})</span>` : ''}
               </div>
               ${strategy ? `<div class="px-2 py-0.5 rounded-full border text-[9px] font-bold mt-0.5 ${strategy.tagColor}">${strategy.tag}</div>` : ''}
             </div>
@@ -820,29 +1007,23 @@
 
     function render() {
       updateAddButtonState();
-      
+
       // 1. 待分配頭像
       const unplacedContainer = document.getElementById('unplaced-container');
       const unplaced = stakeholders.filter(s => !s.isPlaced);
       unplacedContainer.innerHTML = unplaced.map(s => {
         const theme = STAKEHOLDER_THEMES[s.themeIndex] || STAKEHOLDER_THEMES[0];
+        const label = s.title ? `${s.name}（${s.title}）` : s.name;
         return `
-          <div 
-            draggable="true" 
-            ondragstart="handleUnplacedDragStart(event, '${s.id}')"
-            ontouchstart="handleTouchStart(event, '${s.id}')"
-            class="flex flex-col items-center cursor-grab touch-none p-1 group"
+          <div
+            tabindex="0" role="button"
+            aria-label="${esc(label)}：點一下開啟選單，按住可拖曳到地圖"
+            onpointerdown="startPointerDrag(event, '${s.id}')"
+            onkeydown="${nodeKeyHandler(s.id)}"
+            class="flex flex-col items-center cursor-grab touch-none p-1 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
-            <div class="relative">
-              ${createAvatarSvg(theme.color, 40)}
-              <button 
-                onclick="removeStakeholder('${s.id}')" 
-                class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow opacity-80 hover:opacity-100"
-              >
-                ×
-              </button>
-            </div>
-            <span class="text-[10px] font-bold mt-1 text-slate-700">${s.name}</span>
+            ${createAvatarSvg(theme.color, 40)}
+            <span class="text-[10px] font-bold mt-1 text-slate-700">${esc(s.name)}</span>
           </div>
         `;
       }).join('');
@@ -861,14 +1042,17 @@
         exportBtn.className = 'w-full md:w-auto px-5 py-2.5 rounded-xl font-bold text-white shadow-md transition-all bg-blue-600 hover:bg-blue-700 active:scale-95 cursor-pointer';
         tableCard.classList.remove('hidden');
 
-        const quadrantCounts = {};
         strategyTbody.innerHTML = placed.map(s => {
           const theme = STAKEHOLDER_THEMES[s.themeIndex] || STAKEHOLDER_THEMES[0];
           const pos = getPositionInfo(s.x, s.y);
-          const qKey = pos?.quadrantKey;
-          const idx = quadrantCounts[qKey] || 0;
-          quadrantCounts[qKey] = idx + 1;
-          const strategy = getStrategyData(qKey, pos?.isCore, idx, theme.color);
+          const strategy = getStrategyData(s, pos, theme.color);
+
+          const scenarioControl = strategy ? `
+            <select data-scenario aria-label="切換 ${esc(s.name)} 的互動情境"
+              onchange="setScenario('${s.id}', this.value)"
+              class="max-w-full mb-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 rounded border border-blue-200 cursor-pointer">
+              ${strategy.scenarioOptions.map(o => `<option value="${esc(o)}" ${o === strategy.scenario ? 'selected' : ''}>情境：${esc(o)}</option>`).join('')}
+            </select>` : '';
 
           return `
             <tr class="hover:bg-blue-50/30 transition-colors">
@@ -876,8 +1060,8 @@
                 <div class="flex items-center gap-1.5">
                   <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${theme.color};"></span>
                   <div>
-                    <span class="font-extrabold text-slate-800">${s.name}</span>
-                    ${s.title ? `<span class="text-slate-400 text-[10px] ml-1">(${s.title})</span>` : ''}
+                    <span class="font-extrabold text-slate-800">${esc(s.name)}</span>
+                    ${s.title ? `<span class="text-slate-400 text-[10px] ml-1">(${esc(s.title)})</span>` : ''}
                   </div>
                 </div>
               </td>
@@ -894,7 +1078,7 @@
                 <div class="text-[10px] text-slate-500 mt-1 leading-snug">${strategy?.channels || ''}</div>
               </td>
               <td class="py-3 px-2 bg-slate-50/80 text-slate-700 rounded-lg">
-                ${strategy?.scenario ? `<span class="inline-block px-1.5 py-0.5 mb-1.5 text-[10px] font-bold bg-blue-50 text-blue-700 rounded border border-blue-200">情境：${strategy.scenario}</span>` : ''}
+                ${scenarioControl}
                 <div class="leading-relaxed text-[11px] text-slate-800">${strategy?.promptFormatted || ''}</div>
               </td>
             </tr>
@@ -972,7 +1156,18 @@
         const tableCard = document.getElementById('table-card');
         let tableImgData = null, tableHeightInMm = 0;
         if (tableCard) {
-          const tableCanvas = await window.html2canvas(tableCard, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+          const tableCanvas = await window.html2canvas(tableCard, {
+            scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+            // 下拉選單在 PDF 中換成靜態文字標籤
+            onclone: (clonedDoc) => {
+              clonedDoc.querySelectorAll('select[data-scenario]').forEach(sel => {
+                const span = clonedDoc.createElement('span');
+                span.className = 'inline-block px-1.5 py-0.5 mb-1.5 text-[10px] font-bold bg-blue-50 text-blue-700 rounded border border-blue-200';
+                span.textContent = sel.options[sel.selectedIndex]?.text || '';
+                sel.replaceWith(span);
+              });
+            }
+          });
           tableHeightInMm = (tableCanvas.height * contentWidth) / tableCanvas.width;
           tableImgData = tableCanvas.toDataURL('image/jpeg', 0.95);
         }
@@ -1020,7 +1215,20 @@
 
     // 初始化執行
     document.getElementById('version-tag').textContent = `v_${APP_BUILD_TIMESTAMP}`;
+    updateRings();
     render();
+
+    // 畫布尺寸改變（視窗縮放、手機旋轉）時，重算圓環與距離分級，確保畫面與判定一致
+    (function watchMapSize() {
+      const mapEl = document.getElementById('map-container');
+      const refresh = () => {
+        if (dragState && dragState.moved) return;
+        updateRings();
+        render();
+      };
+      if ('ResizeObserver' in window) new ResizeObserver(refresh).observe(mapEl);
+      else window.addEventListener('resize', refresh);
+    })();
   </script>
 </body>
 </html>
